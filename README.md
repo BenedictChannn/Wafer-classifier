@@ -37,6 +37,9 @@ Hyperparameter tuning led us to the following values:
 
 The model was trained, and we observed an improvement in accuracy and a reduction in loss over the epochs. The test set yielded a loss of 44.8% and an accuracy of 92%. A confusion matrix and a recall score of 99.6% demonstrated the model's effectiveness in identifying defective wafers.
 
+![Confusion Matrix](https://github.com/BenedictChannn/Wafer-classifier/blob/main/Results/Confusion_matrix_Epoch50_lr0.0001_dropout0.2_weighted.png)
+
+
 ## Future Improvements
 
 To further enhance accuracy and robustness, data augmentation with geometric transformations can be applied to create additional data. Additional data collection efforts for the 'Donut' class are also recommended to address its underrepresentation.
