@@ -2,24 +2,31 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import seaborn as sns
 from tensorflow import keras
 from keras import layers, Input, models
-# from keras.utils import to_categorical
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
+from sklearn.utils.class_weight import compute_class_weight
 
 df = pd.read_pickle('waferImg26x26.pkl')
 images = df.images.values
 labels = df.labels.values
 labels = np.asarray([str(l[0]) for l in labels])
 
+# Find the indices of images with the 'Donut' label
+donut_indices = [i for i, label in enumerate(labels) if label == 'Donut']
+
+# Remove images with the 'Donut' label
+images = np.delete(images, donut_indices)
+labels = np.delete(labels, donut_indices)
+
 # Create a mapping from string labels to integers
-label_to_int = {label: i for i, label in enumerate(set(labels))}
+label_to_int = {label: i for i, label in enumerate(list(set(labels)))}
 
 # Convert string labels to integers
 labels = np.array([label_to_int[label] for label in labels], dtype=np.int32)
 print(labels)
-
-print(df.dtypes)
 
 # Flatten the images
 images_flat = np.array([image.reshape(-1) for image in images])
@@ -36,10 +43,15 @@ inputs = Input(shape=input_shape, name="input_images")
 
 # Add hidden layers
 hidden = layers.Dense(32, activation='relu', name='hidden_1')(inputs)
+hidden = layers.Dropout(0.1)(hidden)
 hidden = layers.Dense(32, activation='relu', name='hidden_2')(hidden)
+hidden = layers.Dropout(0.1)(hidden)
 
 num_classes = len(set(labels))
 outputs = layers.Dense(num_classes, activation='softmax', name='prediction')(hidden)
+
+class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
+class_weight_dict = dict(enumerate(class_weights))
 
 model = keras.Model(inputs, outputs)
 model.compile(
@@ -49,7 +61,10 @@ model.compile(
 )
 
 # Fit model on training data, with validation at each epoch
-history = model.fit(x_train, y_train, batch_size=32, epochs=20, validation_data=(x_vali, y_vali))
+history = model.fit(
+    x_train, y_train, 
+    batch_size=32, epochs=50, validation_data=(x_vali, y_vali),
+    class_weight=class_weight_dict)
 
 # Accuracy plot 
 plt.plot(history.history['sparse_categorical_accuracy'])
@@ -72,3 +87,22 @@ plt.show()
 # Evaluate on test set
 results = model.evaluate(x_vali, y_vali, batch_size=32)
 print("Test set loss: {}, Test set accuracy: {}".format(results[0], results[1]))
+
+# Determine confusion matrix
+y_pred = model.predict(x_test)
+y_pred = np.argmax(y_pred, axis=1)
+y_test = y_test.astype('int')
+matrix = confusion_matrix(y_test, y_pred)
+matrix = matrix.astype('float') / matrix.sum(axis=1)[:, np.newaxis]
+
+# Present confusion matrix in a more visual manner using seaborn
+classes = list(label_to_int.keys())
+plt.figure()
+sns.set(font_scale=1)
+heat_map = sns.heatmap(
+    matrix, annot=True, annot_kws={'size':5}, cmap='YlGnBu', 
+    linewidths=0.2, xticklabels=classes, yticklabels=classes)
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted labels')
+plt.ylabel('True labels')
+plt.show()
