@@ -14,10 +14,8 @@ images = df.images.values
 labels = df.labels.values
 labels = np.asarray([str(l[0]) for l in labels])
 
-# Find the indices of images with the 'Donut' label
+# Find the indices of images with the 'Donut' label to remove since only 1 image, hard to process
 donut_indices = [i for i, label in enumerate(labels) if label == 'Donut']
-
-# Remove images with the 'Donut' label
 images = np.delete(images, donut_indices)
 labels = np.delete(labels, donut_indices)
 
@@ -42,10 +40,10 @@ input_shape = images_flat[0].shape
 inputs = Input(shape=input_shape, name="input_images")
 
 # Add hidden layers
-hidden = layers.Dense(32, activation='relu', name='hidden_1')(inputs)
-hidden = layers.Dropout(0.1)(hidden)
-hidden = layers.Dense(32, activation='relu', name='hidden_2')(hidden)
-hidden = layers.Dropout(0.1)(hidden)
+hidden = layers.Dense(64, activation='relu', name='hidden_1')(inputs)
+hidden = layers.Dropout(0.2)(hidden)
+hidden = layers.Dense(64, activation='relu', name='hidden_2')(hidden)
+hidden = layers.Dropout(0.2)(hidden)
 
 num_classes = len(set(labels))
 outputs = layers.Dense(num_classes, activation='softmax', name='prediction')(hidden)
@@ -63,7 +61,7 @@ model.compile(
 # Fit model on training data, with validation at each epoch
 history = model.fit(
     x_train, y_train, 
-    batch_size=32, epochs=50, validation_data=(x_vali, y_vali),
+    batch_size=64, epochs=50, validation_data=(x_vali, y_vali),
     class_weight=class_weight_dict)
 
 # Accuracy plot 
@@ -94,6 +92,11 @@ y_pred = np.argmax(y_pred, axis=1)
 y_test = y_test.astype('int')
 matrix = confusion_matrix(y_test, y_pred)
 matrix = matrix.astype('float') / matrix.sum(axis=1)[:, np.newaxis]
+
+# Calculate the recall score
+recall = tf.keras.metrics.Recall()
+recall.update_state(y_test, y_pred)
+print("Test recall score: ", recall.result().numpy())
 
 # Present confusion matrix in a more visual manner using seaborn
 classes = list(label_to_int.keys())
