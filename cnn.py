@@ -68,3 +68,7 @@ plt.ylabel('Loss')
 plt.xlabel('Epoch')
 plt.legend(['train', 'validate'], loc='upper left')
 plt.show()
+
+# Evaluate on test set
+results = model.evaluate(x_vali, y_vali, batch_size=32)
+print("Test set loss: {}, Test set accuracy: {}".format(results[0], results[1]))
